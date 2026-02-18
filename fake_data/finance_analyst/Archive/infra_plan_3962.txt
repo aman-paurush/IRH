@@ -1,7 +1,0 @@
-Owner: finance_analyst
-Department: finance
-Generated: 2026-02-18 20:54:39
-Filename: infra_plan_3962.txt
-
-Internal business record.
-Do not share externally.

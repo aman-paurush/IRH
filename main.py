@@ -6,6 +6,7 @@ Run only in an isolated and authorized lab environment.
 
 import argparse
 import json
+import os
 import signal
 import sys
 import threading
@@ -39,6 +40,7 @@ class IntelligentHoneypot:
         self.logger.conn.commit()
 
         print(f"Experiment {self.exp_id} started with {total_files} files")
+        print(f"Database: {self.logger.db_path.resolve()}")
         print(f"Monitoring: {FAKE_DATA_DIR.resolve()}")
         print("Press Ctrl+C to stop and generate summary")
 
@@ -82,8 +84,31 @@ class IntelligentHoneypot:
             print(f"Total events: {report.get('total_file_events', 0)}")
             print("Full data saved in honeypot.db")
 
+        try:
+            self.logger.conn.close()
+        except Exception:
+            pass
+
         print("Honeypot shutdown complete")
         sys.exit(0)
+
+
+def _find_running_honeypot_pids():
+    try:
+        import psutil
+    except Exception:
+        return []
+
+    pids = []
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        try:
+            cmdline = " ".join(proc.info.get("cmdline") or []).lower()
+            if "python" in (proc.info.get("name") or "").lower() and "main.py" in cmdline:
+                if proc.info["pid"] != os.getpid():
+                    pids.append(proc.info["pid"])
+        except (psutil.Error, OSError):
+            continue
+    return pids
 
 
 def main():
@@ -95,16 +120,37 @@ def main():
     if args.reset:
         import shutil
 
-        DB_PATH.unlink(missing_ok=True)
+        db_candidates = list(DB_PATH.parent.glob("honeypot*.db"))
+        locked_dbs = []
+        for db_file in db_candidates:
+            try:
+                db_file.unlink(missing_ok=True)
+            except PermissionError:
+                locked_dbs.append(db_file.name)
+
         shutil.rmtree(FAKE_DATA_DIR, ignore_errors=True)
         shutil.rmtree(LOGS_DIR, ignore_errors=True)
-        print("Reset complete")
+
+        if not locked_dbs:
+            print("Reset complete")
+        else:
+            pids = _find_running_honeypot_pids()
+            print("Reset partially complete: fake_data and logs removed, but some DB files are locked.")
+            print(f"Locked DB files: {', '.join(locked_dbs)}")
+            if pids:
+                pid_list = ", ".join(str(pid) for pid in pids)
+                print(f"Stop these processes first and rerun --reset: {pid_list}")
+            else:
+                print("Close any process using the DB files (Python/DB browser), then rerun --reset.")
         return
 
     if args.report:
         logger = ThreatLogger()
-        report = logger.generate_report(args.report)
-        print(json.dumps(report, indent=2))
+        try:
+            report = logger.generate_report(args.report)
+            print(json.dumps(report, indent=2))
+        finally:
+            logger.conn.close()
         return
 
     honeypot = IntelligentHoneypot()

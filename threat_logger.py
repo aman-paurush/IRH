@@ -9,8 +9,18 @@ from utils import calculate_entropy, file_hash, is_encrypted_suspicious
 
 class ThreatLogger:
     def __init__(self):
-        self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        self.db_path = DB_PATH
+        self.conn = self._connect_with_fallback()
         self._init_schema()
+
+    def _connect_with_fallback(self):
+        try:
+            return sqlite3.connect(self.db_path, check_same_thread=False)
+        except sqlite3.Error:
+            fallback = DB_PATH.with_name(f"honeypot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+            self.db_path = fallback
+            print(f"[WARN] Primary DB unavailable. Using fallback DB: {fallback.name}")
+            return sqlite3.connect(self.db_path, check_same_thread=False)
 
     def _init_schema(self):
         cursor = self.conn.cursor()
@@ -64,10 +74,26 @@ class ThreatLogger:
 
     def start_experiment(self) -> int:
         cursor = self.conn.cursor()
-        cursor.execute(
-            "INSERT INTO experiments (start_time, status) VALUES (?, ?)",
-            (datetime.now().isoformat(), "running"),
-        )
+        try:
+            cursor.execute(
+                "INSERT INTO experiments (start_time, status) VALUES (?, ?)",
+                (datetime.now().isoformat(), "running"),
+            )
+        except sqlite3.OperationalError as exc:
+            if "readonly" not in str(exc).lower():
+                raise
+
+            self.conn.close()
+            fallback = DB_PATH.with_name(f"honeypot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+            self.db_path = fallback
+            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            self._init_schema()
+            cursor = self.conn.cursor()
+            print(f"[WARN] {DB_PATH.name} is read-only/locked. Using {fallback.name} for this run.")
+            cursor.execute(
+                "INSERT INTO experiments (start_time, status) VALUES (?, ?)",
+                (datetime.now().isoformat(), "running"),
+            )
         exp_id = cursor.lastrowid
         self.conn.commit()
         return exp_id

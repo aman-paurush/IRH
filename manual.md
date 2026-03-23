@@ -81,6 +81,26 @@ Purpose:
   - file event count
   - deception trigger count
 
+### Live alert demo for examiner (recommended)
+Run honeypot:
+```powershell
+python main.py
+```
+
+In another terminal, create test files with ransomware-like extensions:
+```powershell
+Set-Content .\fake_data\demo_test.enc "sample"
+Set-Content .\fake_data\demo_test.encrypt "sample"
+Set-Content .\fake_data\demo_test.locked "sample"
+```
+
+Expected console output in honeypot terminal:
+- `[FILE] ...`
+- `[ALERT] Suspicious extension detected: ...`
+- (often) `[DECEPTION] Layer ... deployed ... files`
+
+This gives a clear real-time proof that your system detects suspicious extension behavior.
+
 ## 4) Typical evaluation demo flow
 
 1. Reset environment:

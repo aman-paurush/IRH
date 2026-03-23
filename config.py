@@ -14,6 +14,7 @@ HONEYPOT_CONFIG = {
     "encryption_patterns": {
         "suspicious_extensions": [
             ".locked",
+            ".encrypt",
             ".encrypted",
             ".crypt",
             ".enc",

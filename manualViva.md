@@ -118,3 +118,57 @@
 - Deception decision module: `deception_rules.py`
 - Trap file generation module: `fake_files.py`
 - Encryption-suspicion helpers: `utils.py` (entropy + hash logic)
+
+## 6) Final implementation libraries and purpose (current code)
+### Core modules
+- `main.py`: entry point, argument parser, experiment lifecycle, integrates all components.
+- `config.py`: project constants, directories, deception and encryption pattern config.
+- `monitoring.py`: real-time watchdog file events, process scanning, ties one-shot detection with deception.
+- `deception_rules.py`: layered adaptive deception strategy and breadcrumb generation.
+- `threat_logger.py`: SQLite schema, event log APIs, experiment reporting.
+- `utils.py`: file hashing, entropy, process info extraction.
+
+### Advanced content generation
+- `advanced_fake_generator.py`: realistic document generation (PDF, Excel, Word, logs, config, source code), used for high-fidelity fake environment when available.
+  - `reportlab` for PDF, `openpyxl` for Excel, `python-docx` for Word, `faker` for dynamic text.
+
+### Intelligence + reporting
+- `intelligence_extractor.py`: IOC extraction from file contents, ransom note analysis, ransomware family mapping, DB IOC persistence.
+- `report_generator.py`: full experiment analytics JSON/PDF reports, cross-experiment comparison.
+
+### Deployment/test tooling
+- `setup_honeypot.py`: automated virtual environment and dependency installation, directory setup, VM-safe config file creation.
+- `test_honeypot.py`: all-around verification test suite for environment, dependencies, DB, fake file generation, CLI.
+
+### Why each non-std library is used
+- `watchdog`: event-driven filesystem observation requires efficient cross-platform file system events.
+- `psutil`: process enumeration + local process metadata retrieval for suspicious process tracking.
+- `faker`: realistic fake data values to avoid trivially synthetic honeypot artifacts.
+- `reportlab`: PDF generation for user-friendly forensic reports.
+- `openpyxl`: create Excel decoy data to lure ransomware targeting productivity files.
+- `python-docx`: generate Word documents with sections/tables for realism.
+
+## 7) Isolated (virtual environment) workflow
+1. Clone project and go to repository.
+2. Run `python3 setup_honeypot.py` (creates `honeypot_venv/`, installs packages from `requirements.txt`).
+3. Activate venv:
+   - Linux/macOS: `source honeypot_venv/bin/activate`
+   - Windows: `honeypot_venv\\Scripts\\activate`
+4. Confirm setup with `python3 test_honeypot.py`.
+5. Snap VM state (critical!).
+6. Start honeypot: `python3 main.py`.
+7. Optionally, run ransomware sample in same isolated VM.
+8. Stop with Ctrl+C, review `honeypot.db`, generated report(s) and extracted IOCs.
+9. Restore VM from snapshot after each experiment.
+
+### Why use VM isolation
+- Contains possible real malware effects.
+- Prevents spread to host/production network.
+- Offers disposable forensic state and repeatable experiments.
+- Ensures ethical and safe analysis required for ransomware research.
+
+## 8) Notes for viva answers
+- Mention that this is a proof-of-concept academic malware analysis system.
+- Explain the difference between static honeypot (one-shot decoy set) and adaptive honeypot (runtime environment mutation triggered by attacker behavior).
+- Explain that intelligence extraction is performed automatically via pattern matching and persistence in DB for later analysis.
+

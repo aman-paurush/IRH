@@ -50,7 +50,7 @@ sudo su - honeypot
 ### 2. Clone/Download Honeypot
 ```bash
 # Clone repository (if using git)
-git clone <honeypot-repository> ~/honeypot
+git clone https://github.com/aman-paurush/IRH.git ~/honeypot
 cd ~/honeypot
 
 # Or extract from ZIP

@@ -1,0 +1,11 @@
+diagram1 - how to deploy in system - proposed methodology
+diagram2 - how honeypot will work in system in virtual environment - proposed methodology
+diagram3 - system log for finding something suspicious in honeylpot logs
+
+total paper - 14 papers
+
+use 4 paper in intro and 10 papers in literature survey and both should have different paper
+referencing of paper in paper from intro and then literature survey should be year-wise
+
+
+
